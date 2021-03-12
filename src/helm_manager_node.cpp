@@ -23,7 +23,7 @@ public:
     ros::NodeHandle nh;
     m_piloting_mode_sub = nh.subscribe("piloting_mode", 10, &BasePublisher::pilotingModeCallback, this );
     m_heartbeat_pub = nh.advertise<marine_msgs::Heartbeat>("heartbeat", 10);
-    m_status_timer = nh.createTimer(ros::Duration(0.25), std::bind(&BasePublisher::statusCallback, this, std::placeholders::_1));
+    m_helm_status_sub = nh.subscribe("status/helm", 10, &BasePublisher::helmStatusCallback, this );
     m_collision_detecter_timer = nh.createTimer(ros::Duration(1.0), std::bind(&BasePublisher::collisionDetecterCallback, this, std::placeholders::_1));
   }
   
@@ -45,16 +45,19 @@ protected:
 private:
   void pilotingModeCallback(const std_msgs::String::ConstPtr& inmsg);
   
-  void statusCallback(const ros::TimerEvent event)
+  void helmStatusCallback(const marine_msgs::Heartbeat::ConstPtr& msg)
   {
     marine_msgs::Heartbeat hb;
-    hb.header.stamp = ros::Time::now();
+    hb.header = msg->header;
 
     marine_msgs::KeyValue kv;
 
     kv.key = "piloting_mode";
     kv.value = m_piloting_mode;
     hb.values.push_back(kv);
+    
+    for(const auto& kv: msg->values)
+      hb.values.push_back(kv);
     
     m_heartbeat_pub.publish(hb);
   }
@@ -79,10 +82,10 @@ private:
   std::string m_piloting_mode;
 
   ros::Publisher m_heartbeat_pub;
+  ros::Subscriber m_helm_status_sub;
   
   std::vector<std::shared_ptr<PilotingMode> > m_piloting_modes;
   
-  ros::Timer m_status_timer;
   ros::Timer m_collision_detecter_timer;
   
   std::map<std::string, int> m_publisher_change_counts;
@@ -152,7 +155,12 @@ public:
   void update(const std::string & mode, const geometry_msgs::TwistStamped::ConstPtr & msg, const std::string & publisher) override
   {
     if(canPublish(mode, publisher))
-      m_twist_pub.publish(msg);
+    {
+      geometry_msgs::TwistStamped twist_clamped = *msg;
+      twist_clamped.twist.linear.x = std::max(-m_max_speed, std::min(m_max_speed, twist_clamped.twist.linear.x));
+      twist_clamped.twist.angular.z = std::max(-m_max_yaw_speed, std::min(m_max_yaw_speed, twist_clamped.twist.angular.z));
+      m_twist_pub.publish(twist_clamped);
+    }
   }
   
   void update(const std::string & mode, const marine_msgs::Helm::ConstPtr & msg, const std::string & publisher) override
@@ -251,7 +259,7 @@ int main(int argc, char **argv)
     {
       for(int i = 0; i < piloting_modes.size(); i++)
         publisher->addPilotingMode(piloting_modes[i]);
-      if(nh_private.getParam("piloting_modes/stanby", piloting_modes) && piloting_modes.getType() == XmlRpc::XmlRpcValue::TypeArray)
+      if(nh_private.getParam("piloting_modes/standby", piloting_modes) && piloting_modes.getType() == XmlRpc::XmlRpcValue::TypeArray)
       {
         for(int i = 0; i < piloting_modes.size(); i++)
           publisher->addPilotingMode(piloting_modes[i],false);
