@@ -7,8 +7,8 @@
 #include "std_msgs/String.h"
 #include "std_msgs/Bool.h"
 #include "geometry_msgs/TwistStamped.h"
-#include "marine_msgs/Heartbeat.h"
-#include "marine_msgs/Helm.h"
+#include "project11_msgs/Heartbeat.h"
+#include "project11_msgs/Helm.h"
 
 class PilotingMode;
 
@@ -22,14 +22,14 @@ public:
     
     ros::NodeHandle nh;
     m_piloting_mode_sub = nh.subscribe("piloting_mode", 10, &BasePublisher::pilotingModeCallback, this );
-    m_heartbeat_pub = nh.advertise<marine_msgs::Heartbeat>("heartbeat", 10);
+    m_heartbeat_pub = nh.advertise<project11_msgs::Heartbeat>("heartbeat", 10);
     m_helm_status_sub = nh.subscribe("status/helm", 10, &BasePublisher::helmStatusCallback, this );
     m_collision_detecter_timer = nh.createTimer(ros::Duration(1.0), std::bind(&BasePublisher::collisionDetecterCallback, this, std::placeholders::_1));
   }
   
   void addPilotingMode(const std::string& mode, bool enable_output=true);
   virtual void update(const std::string& mode, const geometry_msgs::TwistStamped::ConstPtr& msg, const std::string& publisher) = 0;
-  virtual void update(const std::string& mode, const marine_msgs::Helm::ConstPtr& msg, const std::string& publisher) = 0;
+  virtual void update(const std::string& mode, const project11_msgs::Helm::ConstPtr& msg, const std::string& publisher) = 0;
 
 protected:  
   bool canPublish(const std::string& mode, const std::string& publisher)
@@ -45,12 +45,12 @@ protected:
 private:
   void pilotingModeCallback(const std_msgs::String::ConstPtr& inmsg);
   
-  void helmStatusCallback(const marine_msgs::Heartbeat::ConstPtr& msg)
+  void helmStatusCallback(const project11_msgs::Heartbeat::ConstPtr& msg)
   {
-    marine_msgs::Heartbeat hb;
+    project11_msgs::Heartbeat hb;
     hb.header = msg->header;
 
-    marine_msgs::KeyValue kv;
+    project11_msgs::KeyValue kv;
 
     kv.key = "piloting_mode";
     kv.value = m_piloting_mode;
@@ -101,7 +101,7 @@ public:
   HelmPublisher()
   {
     ros::NodeHandle nh;
-    m_helm_pub = nh.advertise<marine_msgs::Helm>("out/helm", 10);
+    m_helm_pub = nh.advertise<project11_msgs::Helm>("out/helm", 10);
     
     ros::NodeHandle nh_private("~");
     
@@ -110,7 +110,7 @@ public:
     
   }
   
-  virtual void update(const std::string & mode, const marine_msgs::Helm::ConstPtr & msg, const std::string & publisher) override
+  virtual void update(const std::string & mode, const project11_msgs::Helm::ConstPtr & msg, const std::string & publisher) override
   {
     if(canPublish(mode, publisher))
       m_helm_pub.publish(msg);
@@ -120,7 +120,7 @@ public:
   {
     if(canPublish(mode, publisher))
     {
-      marine_msgs::Helm helm;
+      project11_msgs::Helm helm;
       helm.header = msg->header;
       helm.throttle = msg->twist.linear.x/m_max_speed;
       helm.throttle = std::max(-1.0, std::min(1.0, double(helm.throttle)));
@@ -163,7 +163,7 @@ public:
     }
   }
   
-  void update(const std::string & mode, const marine_msgs::Helm::ConstPtr & msg, const std::string & publisher) override
+  void update(const std::string & mode, const project11_msgs::Helm::ConstPtr & msg, const std::string & publisher) override
   {
     if(canPublish(mode, publisher))
     {
@@ -195,7 +195,7 @@ public:
     m_active_pub = nh.advertise<std_msgs::Bool>(mode_prefix+mode+"/active", 1, true);
     if(enable)
     {
-      m_helm_sub = nh.subscribe(mode_prefix+mode+"/helm", 10, &PilotingMode::callback<marine_msgs::Helm const>, this);
+      m_helm_sub = nh.subscribe(mode_prefix+mode+"/helm", 10, &PilotingMode::callback<project11_msgs::Helm const>, this);
       m_twist_sub = nh.subscribe(mode_prefix+mode+"/cmd_vel", 10, &PilotingMode::callback<geometry_msgs::TwistStamped const>, this);
     }
   }
