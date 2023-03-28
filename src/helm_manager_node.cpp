@@ -9,6 +9,8 @@
 #include "geometry_msgs/TwistStamped.h"
 #include "project11_msgs/Heartbeat.h"
 #include "project11_msgs/Helm.h"
+#include "project11/pid.h"
+#include "nav_msgs/Odometry.h"
 
 class PilotingMode;
 
@@ -102,12 +104,15 @@ public:
   {
     ros::NodeHandle nh;
     m_helm_pub = nh.advertise<project11_msgs::Helm>("out/helm", 10);
+
+    odom_sub_ = nh.subscribe("odom", 5, &HelmPublisher::odometryCallback, this);
     
     ros::NodeHandle nh_private("~");
     
-    nh_private.param<double>("helm/max_speed", m_max_speed, 1.0);
     nh_private.param<double>("helm/max_yaw_speed", m_max_yaw_speed, 1.0);
     
+    pid_.configure(ros::NodeHandle("~/helm/pid"));
+
   }
   
   virtual void update(const std::string & mode, const project11_msgs::Helm::ConstPtr & msg, const std::string & publisher) override
@@ -122,7 +127,14 @@ public:
     {
       project11_msgs::Helm helm;
       helm.header = msg->header;
-      helm.throttle = msg->twist.linear.x/m_max_speed;
+      helm.throttle = msg->twist.linear.x*pid_.Kp();
+      if(msg->header.stamp - latest_odometry_.header.stamp < ros::Duration(1.0))
+      {
+        pid_.setPoint(msg->twist.linear.x);
+        helm.throttle = pid_.update(latest_odometry_.twist.twist.linear.x, latest_odometry_.header.stamp);
+      }
+      else
+        ROS_WARN_STREAM_THROTTLE(2.0,"No recent odometry for use with throttle PID");
       helm.throttle = std::max(-1.0, std::min(1.0, double(helm.throttle)));
       helm.rudder = -msg->twist.angular.z/m_max_yaw_speed;
       helm.rudder = std::max(-1.0, std::min(1.0, double(helm.rudder)));
@@ -132,10 +144,17 @@ public:
   
   
 private:
+  void odometryCallback(const nav_msgs::Odometry::ConstPtr &msg)
+  {
+    latest_odometry_ = *msg;
+  }
+
   ros::Publisher m_helm_pub;
-  
-  double m_max_speed;
+  ros::Subscriber odom_sub_;
+
   double m_max_yaw_speed;
+  project11::PID pid_;
+  nav_msgs::Odometry latest_odometry_;
 };
 
 class TwistPublisher: public BasePublisher

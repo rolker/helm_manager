@@ -5,12 +5,13 @@ add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
+  project11
   project11_msgs
   roscpp
 )
 
 catkin_package(
-  CATKIN_DEPENDS geometry_msgs project11_msgs roscpp
+  CATKIN_DEPENDS geometry_msgs project11 project11_msgs roscpp
 )
 
 include_directories(
