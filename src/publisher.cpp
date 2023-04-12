@@ -25,7 +25,7 @@ Publisher::Publisher(const std::string & output_type):output_type_(output_type)
     if(output_type != "dual")
     {
       odom_sub_ = nh.subscribe("odom", 5, &Publisher::odometryCallback, this);
-      pid_.configure(ros::NodeHandle("~/helm/pid"));
+      //pid_.configure(ros::NodeHandle("~/helm/pid"));
     }
   }
 
@@ -112,13 +112,13 @@ void Publisher::update(const std::string & mode, const geometry_msgs::TwistStamp
       project11_msgs::Helm helm;
       helm.header = msg->header;
       helm.throttle = msg->twist.linear.x/m_max_speed;
-      if(msg->header.stamp - latest_odometry_.header.stamp < ros::Duration(1.0))
-      {
-        pid_.setPoint(msg->twist.linear.x);
-        helm.throttle = pid_.update(latest_odometry_.twist.twist.linear.x, latest_odometry_.header.stamp);
-      }
-      else
-        ROS_WARN_STREAM_THROTTLE(2.0,"No recent odometry for use with throttle PID");
+      // if(msg->header.stamp - latest_odometry_.header.stamp < ros::Duration(1.0))
+      // {
+      //   //pid_.setPoint(msg->twist.linear.x);
+      //   //helm.throttle = pid_.update(latest_odometry_.twist.twist.linear.x, latest_odometry_.header.stamp);
+      // }
+      // else
+      //   ROS_WARN_STREAM_THROTTLE(2.0,"No recent odometry for use with throttle PID");
       helm.throttle = std::max(-1.0, std::min(1.0, double(helm.throttle)));
       helm.rudder = -msg->twist.angular.z/m_max_yaw_speed;
       helm.rudder = std::max(-1.0, std::min(1.0, double(helm.rudder)));

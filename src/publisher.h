@@ -62,7 +62,7 @@ private:
 
   double m_max_speed;
   double m_max_yaw_speed;
-  project11::PID pid_;
+  //project11::PID pid_;
   nav_msgs::Odometry latest_odometry_;
 };
 
