@@ -111,7 +111,14 @@ void Publisher::update(const std::string & mode, const geometry_msgs::TwistStamp
     {
       project11_msgs::Helm helm;
       helm.header = msg->header;
-      helm.throttle = msg->twist.linear.x/m_max_speed;
+      if(isnan(msg->twist.linear.x))
+      {
+        helm.throttle = 0;
+      }
+      else
+      {
+        helm.throttle = msg->twist.linear.x/m_max_speed;
+      }
       // if(msg->header.stamp - latest_odometry_.header.stamp < ros::Duration(1.0))
       // {
       //   //pid_.setPoint(msg->twist.linear.x);
