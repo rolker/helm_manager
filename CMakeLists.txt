@@ -1,34 +1,29 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5.1)
+
 project(helm_manager)
 
-add_compile_options(-std=c++11)
+set(CMAKE_CXX_STANDARD 17)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-find_package(catkin REQUIRED COMPONENTS
+
+find_package(ament_cmake REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(project11_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+
+add_executable(${PROJECT_NAME} src/helm_manager_node.cpp src/helm_manager.cpp src/piloting_mode.cpp)
+
+ament_target_dependencies(${PROJECT_NAME}
   geometry_msgs
-  project11
   project11_msgs
-  roscpp
+  rclcpp
 )
 
-catkin_package(
-  CATKIN_DEPENDS geometry_msgs project11 project11_msgs roscpp
+
+install(TARGETS ${PROJECT_NAME}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
-
-add_executable(${PROJECT_NAME}_node src/helm_manager_node.cpp src/piloting_mode.cpp src/publisher.cpp)
-
-add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS})
-
-target_link_libraries(${PROJECT_NAME}_node
-    ${catkin_LIBRARIES}
-)
-
-install(TARGETS ${PROJECT_NAME}_node
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
+ament_package()
